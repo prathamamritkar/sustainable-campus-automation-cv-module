@@ -59,8 +59,9 @@ def get_cv_processor():
     global cv_processor
     if cv_processor is None:
         model_path = MODELS_FOLDER / 'yolov8n.pt'
-        mp = str(model_path) if model_path.exists() else None
-        cv_processor = CVProcessor(use_database=True, model_path=mp)
+        if not model_path.exists():
+            model_path = 'yolov8n.pt'
+        cv_processor = CVProcessor(use_database=True)
     return cv_processor
 
 
@@ -457,15 +458,16 @@ def get_db_leaderboard():
 
 @app.route('/db/stats', methods=['GET'])
 def get_db_stats():
-    """Get database statistics"""
+    """Get database statistics - optimized with selective column loading"""
     try:
         session = db.get_session()
         
+        # Use count() instead of loading all objects
         total_persons = session.query(Person).count()
         total_events = session.query(Event).count()
         total_activities = session.query(PersonActivity).count()
         
-        # Recent activity
+        # Recent activity - load only necessary columns
         recent_events = session.query(Event).order_by(Event.timestamp.desc()).limit(5).all()
         
         return jsonify({

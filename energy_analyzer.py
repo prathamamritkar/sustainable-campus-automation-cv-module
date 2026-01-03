@@ -74,6 +74,7 @@ class EnergyAnalyzer:
     def detect_device_state(self, frame, device_bbox, device_type, device_id=None):
         """
         Detect if a device is ON or OFF with multi-frame validation for accuracy
+        Optimized with vectorized operations and reduced allocations
         
         Args:
             frame: Video frame
@@ -86,18 +87,16 @@ class EnergyAnalyzer:
         """
         x1, y1, x2, y2 = device_bbox
         
-        # Extract device region
+        # Extract device region (avoid copy when possible)
         device_roi = frame[y1:y2, x1:x2]
         
         if device_roi.size == 0:
             return {'state': 'UNKNOWN', 'confidence': 0.0, 'brightness': 0}
         
-        # Convert to grayscale for brightness analysis
-        gray = cv2.cvtColor(device_roi, cv2.COLOR_BGR2GRAY)
-        
-        # Calculate average brightness
-        avg_brightness = np.mean(gray)
-        max_brightness = np.max(gray)
+        # Vectorized brightness calculation (faster than grayscale conversion)
+        # Use mean across color channels directly
+        avg_brightness = device_roi.mean()
+        max_brightness = device_roi.max()
         
         # Detect screen-like devices (laptop, monitor, tv, projector)
         if device_type in ['laptop', 'monitor', 'tv', 'desktop', 'projector']:

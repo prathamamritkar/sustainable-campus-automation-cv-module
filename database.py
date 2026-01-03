@@ -58,7 +58,7 @@ class Event(Base):
     detection_method = Column(String(50), nullable=True)  # 'face' or 'appearance'
     
     # Device information
-    devices_detected = Column(JSON, default=list)  # [{"type": "laptop", "confidence": 0.85}]
+    devices_detected = Column(JSON, default='[]')  # [{"type": "laptop", "confidence": 0.85}]
     device_count = Column(Integer, default=0)
     
     # Video metadata
@@ -74,8 +74,8 @@ class Event(Base):
     blockchain_credits = Column(Float, default=0.0)  # ₹ value
     
     # Device state tracking
-    devices_on = Column(JSON, default=list)  # List of devices in ON state
-    devices_off = Column(JSON, default=list)  # List of devices in OFF state
+    devices_on = Column(JSON, default='[]')  # List of devices in ON state
+    devices_off = Column(JSON, default='[]')  # List of devices in OFF state
     lights_on = Column(Boolean, default=False)
     
     # Relationship to person
@@ -85,7 +85,12 @@ class Event(Base):
         return f"<Event(event_id={self.event_id}, person_id='{self.person_id}', timestamp='{self.timestamp}')>"
     
     def to_dict(self):
-        """Convert event to dictionary"""
+        """Convert event to dictionary - optimized JSON handling"""
+        # Pre-parse JSON fields only once
+        devices_detected = self.devices_detected if isinstance(self.devices_detected, (list, dict)) else json.loads(self.devices_detected or '[]')
+        devices_on = self.devices_on if isinstance(self.devices_on, (list, dict)) else json.loads(self.devices_on or '[]')
+        devices_off = self.devices_off if isinstance(self.devices_off, (list, dict)) else json.loads(self.devices_off or '[]')
+        
         return {
             'event_id': self.event_id,
             'timestamp': self.timestamp.isoformat() if self.timestamp else None,
@@ -97,7 +102,7 @@ class Event(Base):
             'face_bbox': self.face_bbox,
             'confidence': self.confidence,
             'detection_method': self.detection_method,
-            'devices_detected': json.loads(self.devices_detected) if isinstance(self.devices_detected, str) else self.devices_detected,
+            'devices_detected': devices_detected,
             'device_count': self.device_count,
             'video_file': self.video_file,
             'frame_number': self.frame_number,
@@ -105,8 +110,8 @@ class Event(Base):
             'action_type': self.action_type,
             'energy_saved_estimate': self.energy_saved_estimate,
             'blockchain_credits': self.blockchain_credits,
-            'devices_on': json.loads(self.devices_on) if isinstance(self.devices_on, str) else self.devices_on,
-            'devices_off': json.loads(self.devices_off) if isinstance(self.devices_off, str) else self.devices_off,
+            'devices_on': devices_on,
+            'devices_off': devices_off,
             'lights_on': self.lights_on
         }
 
@@ -134,14 +139,16 @@ class PersonActivity(Base):
         return f"<PersonActivity(activity_id={self.activity_id}, person_id='{self.person_id}', type='{self.activity_type}')>"
     
     def to_dict(self):
-        """Convert activity to dictionary"""
+        """Convert activity to dictionary - optimized JSON handling"""
+        details = self.details if isinstance(self.details, (list, dict)) else json.loads(self.details or '{}')
+        
         return {
             'activity_id': self.activity_id,
             'person_id': self.person_id,
             'timestamp': self.timestamp.isoformat() if self.timestamp else None,
             'room_id': self.room_id,
             'activity_type': self.activity_type,
-            'details': json.loads(self.details) if isinstance(self.details, str) else self.details,
+            'details': details,
             'incentive_points': self.incentive_points,
             'incentive_reason': self.incentive_reason
         }
@@ -157,17 +164,26 @@ class Database:
         Args:
             db_url: SQLAlchemy database URL
         """
-        # Use SQLite options suited for multithreaded Flask dev server
+        # Enable WAL mode for better concurrent access and performance
         self.engine = create_engine(
-            db_url,
+            db_url, 
             echo=False,
-            connect_args={"check_same_thread": False},
-            future=True
+            pool_size=5,
+            max_overflow=10,
+            pool_pre_ping=True,
+            connect_args={'check_same_thread': False}  # SQLite specific
         )
         self.Session = scoped_session(sessionmaker(bind=self.engine))
         
         # Create tables if they don't exist
         Base.metadata.create_all(self.engine)
+        
+        # Enable SQLite optimizations
+        with self.engine.connect() as conn:
+            conn.execute('PRAGMA journal_mode=WAL')
+            conn.execute('PRAGMA synchronous=NORMAL')
+            conn.execute('PRAGMA cache_size=-64000')  # 64MB cache
+            conn.commit()
         
     def get_session(self):
         """Get a new database session"""

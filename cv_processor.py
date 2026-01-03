@@ -8,11 +8,36 @@ from database import Database
 from energy_analyzer import EnergyAnalyzer
 
 class CVProcessor:
-    def __init__(self, use_database=True, room_id="CS_LAB_101", verify_location=True, optimization_mode='balanced', model_path=None):
-        # Load YOLO model (lightweight nano version for speed)
-        # If a local model path is provided, use it to avoid re-downloading
-        self.model_path = model_path
-        self.model = YOLO(model_path if model_path else 'yolov8n.pt')  # Auto-downloads first time if needed
+    # Class-level cache for face cascades (shared across instances)
+    _face_cascade = None
+    _face_cascade_profile = None
+    _qr_detector = None
+    
+    @classmethod
+    def _get_face_cascade(cls):
+        """Lazy load and cache face cascade classifier"""
+        if cls._face_cascade is None:
+            cls._face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        return cls._face_cascade
+    
+    @classmethod
+    def _get_face_cascade_profile(cls):
+        """Lazy load and cache profile face cascade classifier"""
+        if cls._face_cascade_profile is None:
+            cls._face_cascade_profile = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_profileface.xml')
+        return cls._face_cascade_profile
+    
+    @classmethod
+    def _get_qr_detector(cls):
+        """Lazy load and cache QR code detector"""
+        if cls._qr_detector is None:
+            cls._qr_detector = cv2.QRCodeDetector()
+        return cls._qr_detector
+    
+    def __init__(self, use_database=True, room_id="CS_LAB_101", verify_location=True, optimization_mode='balanced'):
+        # Lazy load YOLO model (deferred until first use)
+        self.model = None
+        self._model_path = 'yolov8n.pt'
         self.room_id = room_id  # e.g., "CS_LAB_101", "IT_CLASS_202"
         self.department = room_id.split('_')[0] if '_' in room_id else 'GENERAL'  # Extract dept
         self.verify_location = verify_location  # Enable location verification
@@ -23,12 +48,10 @@ class CVProcessor:
         self.optimization_mode = optimization_mode
         self.set_thresholds_by_mode(optimization_mode)
         
-        # QR code detector for room verification
-        self.qr_detector = cv2.QRCodeDetector()
-        
-        # Face detection setup - Multi-scale for better accuracy
-        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        self.face_cascade_profile = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_profileface.xml')
+        # Use class-level cached detectors
+        self.qr_detector = self._get_qr_detector()
+        self.face_cascade = self._get_face_cascade()
+        self.face_cascade_profile = self._get_face_cascade_profile()
         
         # Person tracking - ENHANCED ACCURACY
         self.known_faces = {}  # Store: {person_id: {'histograms': [], 'last_bbox': [], 'frame_last_seen': 0, 'detection_count': 0, 'confidence_history': []}}
@@ -67,6 +90,11 @@ class CVProcessor:
         self.previous_devices_state = []  # Track previous device states
         self.previous_occupancy = False
         self.previous_lights_on = False
+    
+    def _ensure_model_loaded(self):
+        """Lazy load YOLO model on first use"""
+        if self.model is None:
+            self.model = YOLO(self._model_path)
     
     def set_thresholds_by_mode(self, mode):
         """
@@ -160,6 +188,9 @@ class CVProcessor:
         Detect objects in a single frame
         Returns: detection results
         """
+        # Ensure YOLO model is loaded (lazy loading)
+        self._ensure_model_loaded()
+        
         # Verify location periodically (every 150 frames = 5 seconds)
         if self.verify_location and self.current_frame_number % 150 == 0:
             self.verify_room_location(frame)
@@ -178,16 +209,19 @@ class CVProcessor:
         for box in person_boxes:
             x1, y1, x2, y2 = box
             
-            # Extract person region
+            # Extract person region (avoid unnecessary copies)
             person_roi = gray[y1:y2, x1:x2]
-            person_roi_color = frame[y1:y2, x1:x2]
             
             if person_roi.size == 0:
                 continue
             
-            # Multi-pass face detection for higher accuracy
+            # Multi-pass face detection for higher accuracy using cached cascades
+            # Get cached cascade classifiers
+            face_cascade = self._get_face_cascade()
+            face_cascade_profile = self._get_face_cascade_profile()
+            
             # Pass 1: Frontal face detection
-            faces = self.face_cascade.detectMultiScale(
+            faces = face_cascade.detectMultiScale(
                 person_roi,
                 scaleFactor=1.05,  # More sensitive
                 minNeighbors=3,    # Lower threshold
@@ -196,7 +230,7 @@ class CVProcessor:
             
             # Pass 2: If no frontal face, try profile detection
             if len(faces) == 0:
-                faces = self.face_cascade_profile.detectMultiScale(
+                faces = face_cascade_profile.detectMultiScale(
                     person_roi,
                     scaleFactor=1.1,
                     minNeighbors=4,
@@ -205,8 +239,9 @@ class CVProcessor:
             
             # If still no face detected, use appearance-based recognition
             if len(faces) == 0:
+                # Extract color ROI only when needed
+                person_roi_color = frame[y1:y2, x1:x2]
                 # Use the entire person bounding box as "face" for recognition
-                face_roi = person_roi
                 person_id = self._match_or_create_person_by_appearance(person_roi_color, [x1, y1, x2, y2])
                 
                 recognized_persons.append({
@@ -220,13 +255,16 @@ class CVProcessor:
                 # Take the largest face
                 fx, fy, fw, fh = max(faces, key=lambda f: f[2] * f[3])
                 
-                # Extract face region
+                # Extract face region (lazy color extraction)
                 face_roi = person_roi[fy:fy+fh, fx:fx+fw]
-                face_roi_color = person_roi_color[fy:fy+fh, fx:fx+fw]
                 
                 # Resize for consistency
                 if face_roi.size > 0:
                     face_resized = cv2.resize(face_roi, (100, 100))
+                    
+                    # Extract color ROI only when needed for saving
+                    person_roi_color = frame[y1:y2, x1:x2]
+                    face_roi_color = person_roi_color[fy:fy+fh, fx:fx+fw]
                     
                     # Match with known faces (with bbox for spatial tracking)
                     person_id = self._match_or_create_person(face_resized, face_roi_color, [x1, y1, x2, y2])
