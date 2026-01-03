@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Project-specific
+uploads/
+outputs/*.json
+outputs/*.log
+outputs/face_database/
+models/*.pt
+models/*.onnx
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+
+# Keep database structure but ignore data
+outputs/sca_events.db
+outputs/sca_events.db-journal
+
+# Keep these files
+!outputs/.gitkeep
+!uploads/.gitkeep
+!models/.gitkeep
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
