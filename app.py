@@ -24,10 +24,31 @@ MODELS_FOLDER.mkdir(exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max file size
 
-# Initialize CV processor and database
+# Initialize CV processor and database lazily
 cv_processor = None
-db = Database()
-energy_analyzer = EnergyAnalyzer()
+db = None
+energy_analyzer = None
+
+
+@app.before_first_request
+def initialize_resources():
+    """Ensure folders exist and initialize database and analytics on first run."""
+    global db, energy_analyzer, cv_processor
+
+    # Ensure essential directories exist
+    UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
+    OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
+    MODELS_FOLDER.mkdir(parents=True, exist_ok=True)
+    (OUTPUT_FOLDER / 'face_database').mkdir(parents=True, exist_ok=True)
+
+    # Initialize database and analytics
+    if db is None:
+        db = Database()
+
+    if energy_analyzer is None:
+        energy_analyzer = EnergyAnalyzer()
+
+    # CV processor will be created on first use via get_cv_processor()
 
 def allowed_file(filename):
     """Check if file extension is allowed"""

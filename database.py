@@ -327,14 +327,15 @@ class Database:
             session.close()
 
 
-# Create a global database instance
-db = Database()
-
-
 if __name__ == "__main__":
-    # Test database creation
-    print("Initializing database...")
+    # Test database creation when run directly
+    print("Initializing database (standalone)...")
+    db = Database()
     
+    # Ensure outputs/face_database exists
+    from pathlib import Path
+    Path('outputs/face_database').mkdir(parents=True, exist_ok=True)
+
     # Add test person
     db.add_person('person_000', 'face', 'outputs/face_database/person_000_face.jpg')
     print("✓ Added test person")
