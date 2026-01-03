@@ -59,9 +59,8 @@ def get_cv_processor():
     global cv_processor
     if cv_processor is None:
         model_path = MODELS_FOLDER / 'yolov8n.pt'
-        if not model_path.exists():
-            model_path = 'yolov8n.pt'
-        cv_processor = CVProcessor(use_database=True)
+        mp = str(model_path) if model_path.exists() else None
+        cv_processor = CVProcessor(use_database=True, model_path=mp)
     return cv_processor
 
 

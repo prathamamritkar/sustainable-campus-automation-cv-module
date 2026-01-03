@@ -58,7 +58,7 @@ class Event(Base):
     detection_method = Column(String(50), nullable=True)  # 'face' or 'appearance'
     
     # Device information
-    devices_detected = Column(JSON, default='[]')  # [{"type": "laptop", "confidence": 0.85}]
+    devices_detected = Column(JSON, default=list)  # [{"type": "laptop", "confidence": 0.85}]
     device_count = Column(Integer, default=0)
     
     # Video metadata
@@ -74,8 +74,8 @@ class Event(Base):
     blockchain_credits = Column(Float, default=0.0)  # ₹ value
     
     # Device state tracking
-    devices_on = Column(JSON, default='[]')  # List of devices in ON state
-    devices_off = Column(JSON, default='[]')  # List of devices in OFF state
+    devices_on = Column(JSON, default=list)  # List of devices in ON state
+    devices_off = Column(JSON, default=list)  # List of devices in OFF state
     lights_on = Column(Boolean, default=False)
     
     # Relationship to person
@@ -157,7 +157,13 @@ class Database:
         Args:
             db_url: SQLAlchemy database URL
         """
-        self.engine = create_engine(db_url, echo=False)
+        # Use SQLite options suited for multithreaded Flask dev server
+        self.engine = create_engine(
+            db_url,
+            echo=False,
+            connect_args={"check_same_thread": False},
+            future=True
+        )
         self.Session = scoped_session(sessionmaker(bind=self.engine))
         
         # Create tables if they don't exist

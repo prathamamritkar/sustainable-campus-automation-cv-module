@@ -8,9 +8,11 @@ from database import Database
 from energy_analyzer import EnergyAnalyzer
 
 class CVProcessor:
-    def __init__(self, use_database=True, room_id="CS_LAB_101", verify_location=True, optimization_mode='balanced'):
+    def __init__(self, use_database=True, room_id="CS_LAB_101", verify_location=True, optimization_mode='balanced', model_path=None):
         # Load YOLO model (lightweight nano version for speed)
-        self.model = YOLO('yolov8n.pt')  # Auto-downloads first time
+        # If a local model path is provided, use it to avoid re-downloading
+        self.model_path = model_path
+        self.model = YOLO(model_path if model_path else 'yolov8n.pt')  # Auto-downloads first time if needed
         self.room_id = room_id  # e.g., "CS_LAB_101", "IT_CLASS_202"
         self.department = room_id.split('_')[0] if '_' in room_id else 'GENERAL'  # Extract dept
         self.verify_location = verify_location  # Enable location verification
