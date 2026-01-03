@@ -812,6 +812,75 @@ async function getLeaderboard(department: string) {
 
 ## 🤝 Contributing
 
+Thank you for considering contributing to the Sustainable Campus Automation Computer Vision Module!
+
+### Getting Started
+
+1. **Fork the repository**
+2. **Clone your fork**:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/sca-cv-module.git
+   cd sca-cv-module
+   ```
+3. **Create a virtual environment**:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Linux/Mac
+   .\venv\Scripts\Activate.ps1  # Windows
+   ```
+4. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### Development Workflow
+
+1. **Create a feature branch**:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Make your changes** following our coding standards:
+   - Use meaningful variable names
+   - Add docstrings to functions
+   - Comment complex logic
+   - Follow PEP 8 style guide
+
+3. **Test your changes**:
+   ```bash
+   python app.py  # Test API
+   python query_database.py  # Test database queries
+   ```
+
+4. **Commit your changes**:
+   ```bash
+   git add .
+   git commit -m "feat: Add your feature description"
+   ```
+
+5. **Push to your fork**:
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+6. **Create a Pull Request**
+
+### Commit Message Guidelines
+
+- `feat:` New feature
+- `fix:` Bug fix
+- `docs:` Documentation changes
+- `refactor:` Code refactoring
+- `test:` Adding tests
+- `perf:` Performance improvements
+
+### Code Standards
+
+- **Python**: Follow PEP 8
+- **Type Hints**: Use where applicable
+- **Documentation**: Update README.md for new features
+- **Performance**: Maintain <31ms latency for real-time processing
+
 ### Code Structure
 
 - `cv_processor.py` - Person detection, Kalman filtering, ensemble methods
@@ -854,11 +923,113 @@ if custom_condition:
     return action
 ```
 
+### Testing Checklist
+
+Before submitting a PR:
+- [ ] Code runs without errors
+- [ ] Performance metrics maintained (>90% accuracy)
+- [ ] Documentation updated
+- [ ] No unnecessary dependencies added
+
+### Questions?
+
+Open an issue or start a discussion on GitHub!
+
+---
+
+## 🚀 Git Setup & GitHub Deployment
+
+### Quick Start - Push to GitHub
+
+```powershell
+# 1. Initialize Git repository (if not already done)
+git init
+
+# 2. Add all files
+git add .
+
+# 3. Create initial commit
+git commit -m "feat: Initial commit - SCA CV Module v1.0"
+
+# 4. Create GitHub repository
+# Option A: Using GitHub CLI (recommended)
+gh repo create sca-cv-module --public --source=. --remote=origin --push
+
+# Option B: Manual setup
+git remote add origin https://github.com/YOUR_USERNAME/sca-cv-module.git
+git branch -M main
+git push -u origin main
+```
+
+### Using GitHub CLI (Recommended)
+
+```powershell
+# Install GitHub CLI (if not installed)
+winget install GitHub.cli
+
+# Login to GitHub
+gh auth login
+
+# Create repository and push in one command
+gh repo create sca-cv-module --public --source=. --remote=origin --push
+```
+
+### Manual GitHub Setup
+
+1. **Go to GitHub**: https://github.com/new
+2. **Repository name**: `sca-cv-module`
+3. **Description**: `Real-time energy monitoring system with 93% accuracy for sustainable campus automation`
+4. **Public/Private**: Choose based on preference
+5. **Don't initialize** with README (we have one)
+6. **Click**: Create repository
+7. **Run**:
+   ```powershell
+   git remote add origin https://github.com/YOUR_USERNAME/sca-cv-module.git
+   git branch -M main
+   git push -u origin main
+   ```
+
+### Repository Configuration
+
+After pushing, configure:
+
+**About Section:**
+- **Description**: Real-time energy monitoring with computer vision for sustainable campuses
+- **Website**: (optional)
+- **Topics**: `computer-vision`, `sustainability`, `energy-monitoring`, `yolov8`, `opencv`, `python`, `flask`, `campus-automation`, `blockchain`, `green-tech`
+
+**Branch Protection (Optional):**
+- Go to Settings → Branches → Add rule
+- Branch name: `main`
+- ☑️ Require pull request reviews before merging
+- ☑️ Require status checks to pass
+
+### Cloning and Setup
+
+```powershell
+# Clone your repository
+git clone https://github.com/YOUR_USERNAME/sca-cv-module.git
+cd sca-cv-module
+
+# Setup virtual environment
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Initialize database
+python setup.py
+
+# Run API server
+python app.py
+```
+
 ---
 
 ## 📄 License
 
-MIT License - See project for details
+MIT License - See [LICENSE](LICENSE) for details
 
 ---
 
