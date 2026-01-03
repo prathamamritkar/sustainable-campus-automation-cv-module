@@ -83,12 +83,9 @@ python -m venv venv
 # 3. Install dependencies
 pip install opencv-python opencv-contrib-python numpy flask ultralytics sqlalchemy
 
-# 4. Initialize database
-python
->>> from database import Database
->>> db = Database()
->>> exit()
-```
+# 4. Database
+
+The database is created automatically on the first run of `app.py`; no manual initialization is required.
 
 YOLOv8n model auto-downloads on first run.
 
